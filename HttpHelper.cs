@@ -12,7 +12,6 @@ namespace Help12306
 {
     class HttpHelper
     {
-
         private static int delay = 1000;
         private static int maxTry = 300;
         private static Encoding encoding = Encoding.GetEncoding("utf-8");
@@ -48,7 +47,7 @@ namespace Help12306
         {
             get
             {
-                return "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/x-silverlight, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, application/x-silverlight-2-b1, */*";
+                return "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg,application/json, text/javascript, */*";
             }
         }
 
@@ -59,7 +58,26 @@ namespace Help12306
         {
             get
             {
-                return "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022)";
+                //return "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022)";
+                return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36";
+            }
+        }
+
+        private static WebProxy Proxy
+        {
+            get
+            {
+                WebProxy proxy = new WebProxy();
+                proxy.Address = new Uri("http://220.166.240.47:8118");
+                return proxy;
+            }
+        }
+
+        private static bool UseProxy
+        {
+            get
+            {
+                return false;
             }
         }
 
@@ -82,10 +100,15 @@ namespace Help12306
             try
             {
                 httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
+                if (UseProxy)
+                    httpWebRequest.Proxy = Proxy;
                 httpWebRequest.CookieContainer = cookieContainer;
                 httpWebRequest.ContentType = ContentType;
                 httpWebRequest.ServicePoint.ConnectionLimit = maxTry;
+                //if (string.IsNullOrEmpty(referer))
                 httpWebRequest.Referer = url;
+                //else
+                //    httpWebRequest.Referer = referer;
                 httpWebRequest.Accept = Accept;
                 httpWebRequest.UserAgent = UserAgent;
                 httpWebRequest.Method = isPost ? "POST" : "GET";
@@ -134,6 +157,14 @@ namespace Help12306
             }
         }
 
+        static HttpHelper()
+        {
+            //这里是https并且证书未认证需加上这个
+            ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CheckValidationResult);
+            //这里是个坑，默认一个ip地址只会并发创建2个连接
+            ServicePointManager.DefaultConnectionLimit = 512;
+        }
+
         private static bool CheckValidationResult(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors errors)
         {
             return true;
@@ -150,9 +181,9 @@ namespace Help12306
 
             try
             {
-                //获取图片流，这里是https并且证书未认证需加上这个
-                ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(CheckValidationResult);
                 httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
+                if (UseProxy)
+                    httpWebRequest.Proxy = Proxy;
                 httpWebRequest.CookieContainer = cookieContainer;
                 httpWebRequest.ContentType = ContentType;
                 httpWebRequest.ServicePoint.ConnectionLimit = maxTry;
@@ -198,48 +229,6 @@ namespace Help12306
                     unicodeString += "%" + Convert.ToString(b, 16).ToUpper();
             }
             return unicodeString;
-        }
-
-        /// <summary>
-        /// 发送邮件（只发送单篇邮件）
-        /// </summary>
-        /// <param name="title">邮件标题</param>
-        /// <param name="content">邮件正文</param>
-        /// <param name="receiveAddress">收件人地址</param>
-        /// <param name="receiver">收件人姓名</param>
-        /// <param name="sender">发件人姓名</param>
-        /// <returns>是否发送成功</returns>
-        public static bool SendEmail(string title, string content, string sender)
-        {
-            string SmtpServer = "smtp.163.com";
-            string User = "alphatestmail@163.com";
-            string Pwd = "alpha123456";
-            try
-            {
-                System.Net.Mail.SmtpClient client;                             //邮件客户端
-                client = new System.Net.Mail.SmtpClient(SmtpServer);           //实例化对象，参数为smtp服务器
-                client.Timeout = 60000;                                        //邮件发送延迟一分钟
-                client.UseDefaultCredentials = false;
-                client.Credentials = new System.Net.NetworkCredential(User, Pwd);    //登录名与密码
-                client.DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network;
-                System.Net.Mail.MailMessage message = new System.Net.Mail.MailMessage();
-
-
-                message.SubjectEncoding = System.Text.Encoding.UTF8;
-                message.BodyEncoding = System.Text.Encoding.UTF8;
-                message.From = new System.Net.Mail.MailAddress(User, sender, System.Text.Encoding.UTF8);  // 【发件人地址,发件人称呼[发件人姓名]】--发件人地址需要与SMTP登录名保持一致
-                message.To.Add(new System.Net.Mail.MailAddress("53455375@qq.com", "", System.Text.Encoding.UTF8));
-                message.IsBodyHtml = false;
-                message.Subject = title.Replace("\r", "").Replace("\n", "").Trim();
-                message.Body = content;
-
-                client.Send(message);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
         }
     }
 }

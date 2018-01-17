@@ -12,7 +12,7 @@
     <AssemblyName>Help12306</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -49,18 +49,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FromCode.cs">
+    <Compile Include="frmCode.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FromCode.Designer.cs">
-      <DependentUpon>FromCode.cs</DependentUpon>
+    <Compile Include="frmCode.Designer.cs">
+      <DependentUpon>frmCode.cs</DependentUpon>
     </Compile>
     <Compile Include="HttpHelper.cs" />
     <Compile Include="Model.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="FromCode.resx">
-      <DependentUpon>FromCode.cs</DependentUpon>
+    <EmbeddedResource Include="frmCode.resx">
+      <DependentUpon>frmCode.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -85,6 +85,12 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="msg.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="error.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="success.wav" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

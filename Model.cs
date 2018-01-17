@@ -12,18 +12,16 @@ namespace Help12306
         public string name { get; private set; }
         public string value { get; private set; }
         public CookieContainer cookieContainer { get; private set; }
+        public ClientInfo()
+        {
+            cookieContainer = new CookieContainer();
+        }
         public ClientInfo(string input, string cookie)
+            : this(cookie)
         {
             SetValue(input);
-            cookieContainer = new CookieContainer();
-            var arr_c = cookie.Split(';');
-            foreach (var c in arr_c)
-            {
-                var a = c.Trim().Split('=');
-                var co = new Cookie(a[0], a[1], "/", ".12306.cn");
-                cookieContainer.Add(co);
-            }
         }
+
         public ClientInfo(string cookie)
         {
             cookieContainer = new CookieContainer();
@@ -45,13 +43,29 @@ namespace Help12306
         }
     }
 
-    class MessageResult
+    class MessageResult<T>
     {
         public string validateMessagesShowId { get; set; }
         public bool status { get; set; }
         public int httpstatus { get; set; }
-        public dynamic data { get; set; }
+        public T data { get; set; }
         public string[] messages { get; set; }
+    }
+
+    class CodeResult
+    {
+        public string result_message { get; set; }
+        public int result_code { get; set; }
+    }
+
+    class LoginResult : CodeResult
+    {
+        public string uamtk { get; set; }
+    }
+
+    public class TrainData
+    {
+        public string[] result;
     }
 
     class CityDictionary
@@ -61,6 +75,8 @@ namespace Help12306
         {
             value = new Dictionary<string, string>();
             value.Add("荆州", "JBN");
+            value.Add("汉口", "HKN");
+            value.Add("荆门", "JMN");
             value.Add("武汉", "WHN");
             value.Add("北京", "BJP");
             value.Add("上海", "SHH");
@@ -72,6 +88,7 @@ namespace Help12306
             value.Add("深圳", "SZQ");
             value.Add("广州", "GZQ");
             value.Add("广州南", "IZQ");
+            value.Add("潜江", "QJN");
         }
     }
 
@@ -86,6 +103,16 @@ namespace Help12306
 
     abstract class Info
     {
+        class Private_Info : Info
+        {
+
+        }
+        private static Private_Info info;
+        static Info()
+        {
+            info = new Private_Info();
+        }
+
         public string user { get; private set; }
         public string password { get; private set; }
         public List<string> traincodes { get; private set; }
@@ -93,12 +120,6 @@ namespace Help12306
         public string from { get; private set; }
         public string to { get; private set; }
         public Passenger[] passengers { get; private set; }
-        public bool sendMail { get; private set; }
-
-        class Private_Info : Info
-        {
-
-        }
 
         public static Info GetInfo(string xmlPath)
         {
@@ -106,7 +127,6 @@ namespace Help12306
             {
                 XmlDocument doc = new XmlDocument();
                 doc.Load(xmlPath);
-                Info info = new Private_Info();
                 info.user = doc.DocumentElement["User"].InnerText;
                 info.password = doc.DocumentElement["Password"].InnerText;
                 info.traincodes = new List<string>();
@@ -130,9 +150,6 @@ namespace Help12306
                     });
                 }
                 info.passengers = list.ToArray();
-                bool sendMail = false;
-                if (bool.TryParse(doc.DocumentElement["SendMail"].InnerText, out sendMail))
-                    info.sendMail = sendMail;
                 return info;
             }
             catch
@@ -144,74 +161,102 @@ namespace Help12306
 
     class TrainInfo
     {
-        public TrainInfo(dynamic obj)
+        public TrainInfo(string obj)
         {
-            traincode = obj.queryLeftNewDTO.station_train_code.Value;
-            secretStr = obj.secretStr.Value;
-            startTime = obj.queryLeftNewDTO.start_time.Value;
-            arriveTime = obj.queryLeftNewDTO.arrive_time.Value;
-            swz_num = obj.queryLeftNewDTO.swz_num.Value;
-            zy_num = obj.queryLeftNewDTO.zy_num.Value;
-            ze_num = obj.queryLeftNewDTO.ze_num.Value;
-            yz_num = obj.queryLeftNewDTO.yz_num.Value;
-            yw_num = obj.queryLeftNewDTO.yw_num.Value;
-            wz_num = obj.queryLeftNewDTO.wz_num.Value;
-            rz_num = obj.queryLeftNewDTO.rz_num.Value;
-            rw_num = obj.queryLeftNewDTO.rw_num.Value;
-            tz_num = obj.queryLeftNewDTO.tz_num.Value;
+            //train_no = obj.queryLeftNewDTO.train_no.Value;
+            //traincode = obj.queryLeftNewDTO.station_train_code.Value;
+            //from_station_telecode = obj.queryLeftNewDTO.from_station_telecode;
+            //to_station_telecode = obj.queryLeftNewDTO.to_station_telecode;
+            //secretStr = obj.secretStr.Value;
+            //startTime = obj.queryLeftNewDTO.start_time.Value;
+            //arriveTime = obj.queryLeftNewDTO.arrive_time.Value;
+            //swz_num = obj.queryLeftNewDTO.swz_num.Value;
+            //zy_num = obj.queryLeftNewDTO.zy_num.Value;
+            //ze_num = obj.queryLeftNewDTO.ze_num.Value;
+            //yz_num = obj.queryLeftNewDTO.yz_num.Value;
+            //yw_num = obj.queryLeftNewDTO.yw_num.Value;
+            //wz_num = obj.queryLeftNewDTO.wz_num.Value;
+            //rz_num = obj.queryLeftNewDTO.rz_num.Value;
+            //rw_num = obj.queryLeftNewDTO.rw_num.Value;
+            //tz_num = obj.queryLeftNewDTO.tz_num.Value;
+
+
+            var data = obj.Split("|".ToCharArray());
+            secretStr = data[0];
+            train_no = data[2];
+            traincode = data[3];
+            from_station_telecode = data[6];
+            to_station_telecode = data[7];
+            startTime = data[8];
+            arriveTime = data[9];
+            swz_num = data[32];
+            zy_num = data[31];
+            ze_num = data[30];
+            yz_num = data[20];
+            yw_num = data[28];
+            wz_num = data[26];
+            rz_num = data[24];
+            rw_num = data[23];
+            tz_num = data[25];
         }
 
+        public string from_station_telecode { get; private set; }
+        public string to_station_telecode { get; private set; }
+        /// <summary>
+        /// 编号
+        /// </summary>
+        public string train_no { get; private set; }
         /// <summary>
         /// 车次
         /// </summary>
-        public string traincode { get; set; }
+        public string traincode { get; private set; }
         /// <summary>
         /// 车次提交串码
         /// </summary>
-        public string secretStr { get; set; }
+        public string secretStr { get; private set; }
         /// <summary>
         /// 发车时间
         /// </summary>
-        public string startTime { get; set; }
+        public string startTime { get; private set; }
         /// <summary>
         /// 到站时间
         /// </summary>
-        public string arriveTime { get; set; }
+        public string arriveTime { get; private set; }
         /// <summary>
         /// 商务座
         /// </summary>
-        public string swz_num { get; set; }
+        public string swz_num { get; private set; }
         /// <summary>
         /// 一等座
         /// </summary>
-        public string zy_num { get; set; }
+        public string zy_num { get; private set; }
         /// <summary>
         /// 二等座
         /// </summary>
-        public string ze_num { get; set; }
+        public string ze_num { get; private set; }
         /// <summary>
         /// 硬座
         /// </summary>
-        public string yz_num { get; set; }
+        public string yz_num { get; private set; }
         /// <summary>
         /// 硬卧
         /// </summary>
-        public string yw_num { get; set; }
+        public string yw_num { get; private set; }
         /// <summary>
         /// 无座
         /// </summary>
-        public string wz_num { get; set; }
+        public string wz_num { get; private set; }
         /// <summary>
         /// 软座
         /// </summary>
-        public string rz_num { get; set; }
+        public string rz_num { get; private set; }
         /// <summary>
         /// 软卧
         /// </summary>
-        public string rw_num { get; set; }
+        public string rw_num { get; private set; }
         /// <summary>
         /// 特等座
         /// </summary>
-        public string tz_num { get; set; }
+        public string tz_num { get; private set; }
     }
 }
