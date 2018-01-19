@@ -215,7 +215,10 @@ namespace Help12306
                 spSuccess.Play();
             }
             else
-                BeginQuery();
+            {
+                Console.WriteLine("抢票失败！");
+                spError.Play();
+            }
             // }
         }
 
