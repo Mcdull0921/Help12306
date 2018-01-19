@@ -34,6 +34,11 @@ namespace Help12306
             }
         }
 
+        public void SetCookie(string name, string value)
+        {
+            cookieContainer.SetCookies(new Uri("https://kyfw.12306.cn"), (name + "=" + value));
+        }
+
         public void SetValue(string input)
         {
             var arr_v = input.Split(":::".ToArray(), StringSplitOptions.RemoveEmptyEntries);
@@ -61,6 +66,18 @@ namespace Help12306
     class LoginResult : CodeResult
     {
         public string uamtk { get; set; }
+    }
+
+    class AppTokenResult : CodeResult
+    {
+        public string apptk { get; set; }
+        public string newapptk { get; set; }
+    }
+
+    class DeviceResult
+    {
+        public string exp { get; set; }
+        public string dfp { get; set; }
     }
 
     public class TrainData

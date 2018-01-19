@@ -59,7 +59,8 @@ namespace Help12306
             get
             {
                 //return "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022)";
-                return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36";
+                //return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36";
+                return "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko";
             }
         }
 
@@ -91,7 +92,7 @@ namespace Help12306
         /// <param name="isPost">是否是post</param>
         /// <param name="cookieContainer">CookieContainer</param>
         /// <returns>html </returns>
-        public static string GetHtml(string url, string postData, bool isPost, CookieContainer cookieContainer)
+        public static string GetHtml(string url, string postData, bool isPost, CookieContainer cookieContainer, string referer = null, bool autoRedirect = true)
         {
             Thread.Sleep(NetworkDelay);
 
@@ -102,20 +103,24 @@ namespace Help12306
                 httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
                 if (UseProxy)
                     httpWebRequest.Proxy = Proxy;
+                if (!autoRedirect)
+                    httpWebRequest.AllowAutoRedirect = false;
                 httpWebRequest.CookieContainer = cookieContainer;
                 httpWebRequest.ContentType = ContentType;
                 httpWebRequest.ServicePoint.ConnectionLimit = maxTry;
-                //if (string.IsNullOrEmpty(referer))
-                httpWebRequest.Referer = url;
-                //else
-                //    httpWebRequest.Referer = referer;
+                if (string.IsNullOrEmpty(referer))
+                    httpWebRequest.Referer = url;
+                else
+                    httpWebRequest.Referer = referer;
                 httpWebRequest.Accept = Accept;
                 httpWebRequest.UserAgent = UserAgent;
                 httpWebRequest.Method = isPost ? "POST" : "GET";
+                if (isPost)
+                    httpWebRequest.Headers["X-Requested-With"] = "XMLHttpRequest";
                 httpWebRequest.ContentLength = 0;
                 if (!string.IsNullOrEmpty(postData))
                 {
-                    byte[] byteRequest = Encoding.Default.GetBytes(postData);
+                    byte[] byteRequest = Encoding.UTF8.GetBytes(postData);
                     httpWebRequest.ContentLength = byteRequest.Length;
                     Stream stream = httpWebRequest.GetRequestStream();
                     stream.Write(byteRequest, 0, byteRequest.Length);
@@ -124,6 +129,11 @@ namespace Help12306
                 }
 
                 httpWebResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+                if (!autoRedirect && httpWebResponse.StatusCode == HttpStatusCode.Found)
+                    return "302";
+                //Uri h = new Uri("https://kyfw.12306.cn/");
+                //foreach (Cookie c in httpWebResponse.Cookies)
+                //    cookieContainer.Add(new Cookie(c.Name, c.Value, "/", ".12306.cn"));
                 Stream responseStream = httpWebResponse.GetResponseStream();
                 StreamReader streamReader = new StreamReader(responseStream, encoding);
                 string html = streamReader.ReadToEnd();
@@ -193,6 +203,9 @@ namespace Help12306
                 httpWebRequest.Method = "GET";
 
                 httpWebResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+                //Uri h = new Uri("https://kyfw.12306.cn/");
+                //foreach (Cookie c in httpWebResponse.Cookies)
+                //    cookieContainer.Add(new Cookie(c.Name, c.Value, "/", ".12306.cn"));
                 Stream responseStream = httpWebResponse.GetResponseStream();
                 return responseStream;
             }
@@ -229,6 +242,39 @@ namespace Help12306
                     unicodeString += "%" + Convert.ToString(b, 16).ToUpper();
             }
             return unicodeString;
+        }
+
+
+        public static string CharacterToCoding(string character)
+        {
+            string coding = "";
+
+            for (int i = 0; i < character.Length; i++)
+            {
+                byte[] bytes = System.Text.Encoding.Unicode.GetBytes(character.Substring(i, 1));
+
+                //取出二进制编码内容 
+                string lowCode = System.Convert.ToString(bytes[0], 16);
+
+                //取出低字节编码内容（两位16进制） 
+                if (lowCode.Length == 1)
+                {
+                    lowCode = "0" + lowCode;
+                }
+
+                string hightCode = System.Convert.ToString(bytes[1], 16);
+
+                //取出高字节编码内容（两位16进制） 
+                if (hightCode.Length == 1)
+                {
+                    hightCode = "0" + hightCode;
+                }
+
+                coding += "%u" + (hightCode + lowCode).ToUpper();
+
+            }
+
+            return coding;
         }
     }
 }

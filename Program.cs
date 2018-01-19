@@ -46,6 +46,8 @@ namespace Help12306
         private static string toCode;
         private static string passengerTicketStr;
         private static string oldPassengerStr;
+
+        private static WebBrowser browser;
         #endregion
         /// <summary>
         /// 应用程序的主入口点。
@@ -76,31 +78,90 @@ namespace Help12306
                 Console.WriteLine("");
                 if (Init())
                 {
-                    string str = "_passport_session=0ce17d46acb74f4c866a65d5cc0b802c7945; _passport_ct=ca504d6884a445cdab29ec91852eca2dt2779; _jc_save_detail=true; RAIL_OkLJUJ=FDQDc5CfAidVSCbUifKvc2_gLZRclSXt; route=c5c62a339e7744272a54643b3be5bf64; BIGipServerotn=82051594.38945.0000; RAIL_EXPIRATION=1516488361891; RAIL_DEVICEID=lCWDGEwSUYI8m8-TsbotLKTii3nvR6vKOsPa4XD0CwES55M0G5iPyHmE99Pg94AZTRyI8qewrYS-qbwEOGAxqtoU4LX8cifnSOqux2B9nmxrjJtpRfitfGMmSRDqJLb5oyKlX3cvFKq-UlbeVShBmmhIT2O46b_4; acw_tc=AQAAAFm4Thhi0AEAJXS4PXPah9Frt+ER; _jc_save_fromStation=%u6B66%u6C49%2CWHN; _jc_save_toStation=%u8346%u5DDE%2CJBN; _jc_save_fromDate=2018-01-28; _jc_save_toDate=2018-01-17; _jc_save_wfdc_flag=dc; BIGipServerpool_passport=183304714.50215.0000";
-                    clientInfo = new ClientInfo(str);
+                    // var str = "JSESSIONID=FF13010DB370B4A23815E14878F4367D; tk=vzRCtuXR2-zckFsZk_hmcRBLvy6hxndHB8H8e3RFvkGyRLsGet2220; route=6f50b51faa11b987e576cdb301e545c4; BIGipServerotn=2061763082.50210.0000; BIGipServerpool_passport=183304714.50215.0000; RAIL_EXPIRATION=1516611526733; RAIL_DEVICEID=Sv-I6_KMiOKvun6LsaQTIZKrXtCeu8cOVx6Hq1JKC5KW9InsT2ym-M4XrQBlord7SyNPrjO8QmDGtlOqmTHNNo7Cs1k8iYwilQPGQhWukjcRSYPhZ5mnhCpeVz-vj_GRoeCCEEfbfM_2a5M42oNzXiJDyRDAEdvS; _jc_save_showIns=true; current_captcha_type=Z; _jc_save_fromStation=%u6B66%u6C49%2CWHN; _jc_save_toStation=%u8346%u5DDE%2CJBN; _jc_save_fromDate=2018-01-27; _jc_save_toDate=2018-01-18; _jc_save_wfdc_flag=dc";
+
+                    browser = new WebBrowser();
+                    browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(browser_DocumentCompleted);
+
+                    Form form = new Form();
+                    form.WindowState = FormWindowState.Minimized;
+                    form.Visible = false;
+                    form.ShowInTaskbar = false;
+                    form.Controls.Add(browser);
+                    form.Name = "Browser";
+                    form.Load += new EventHandler(form_Load);
+                    Application.Run(form);
+
+
                     //HttpHelper.GetHtml("https://kyfw.12306.cn/otn/login/init", null, false, clientInfo.cookieContainer);
                     //Console.WriteLine(HttpHelper.GetHtml("https://kyfw.12306.cn/passport/web/auth/uamtk", "appid=otn", true, clientInfo.cookieContainer));
-                    Console.WriteLine("请输入验证码");
-                    frmCode f = new frmCode(true, clientInfo.cookieContainer, CheckCode);
-                    if (f.ShowDialog() == DialogResult.OK)
-                    {
-                        Console.WriteLine("开始登录..");
-                        if (Login(f.Code))
-                        {
-                            BeginQuery();
-                        }
-                    }
+                    //LogDevice();
+                    //Console.WriteLine("请输入验证码");
+                    //frmCode f = new frmCode(true, clientInfo.cookieContainer, CheckCode);
+                    //if (f.ShowDialog() == DialogResult.OK)
+                    //{
+                    //    Console.WriteLine("开始登录..");
+                    //    if (Login(f.Code))
+                    //    {
+                    //        BeginQuery();
+                    //    }
+                    //}
                 }
                 else
                     Console.WriteLine("初始化失败");
-                Console.WriteLine("Ctrl+C退出程序");
-                ConsoleKeyInfo q = new ConsoleKeyInfo('c', ConsoleKey.C, false, false, true);
-                while (true)
+                //Console.WriteLine("Ctrl+C退出程序");
+                //ConsoleKeyInfo q = new ConsoleKeyInfo('c', ConsoleKey.C, false, false, true);
+                //while (true)
+                //{
+                //    if (Console.ReadKey(true) == q)
+                //        return;
+                //}
+            }
+        }
+
+        static void form_Load(object sender, EventArgs e)
+        {
+            browser.Navigate("https://kyfw.12306.cn/otn/login/init");
+        }
+
+        static void browser_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
+        {
+            if (browser.Document.Cookie.Contains("RAIL_DEVICEID"))
+            {
+                Console.WriteLine("设备信息获取成功，开始执行登录。。");
+                clientInfo = new ClientInfo(browser.Document.Cookie);
+                browser.Stop();
+                browser.DocumentCompleted -= new WebBrowserDocumentCompletedEventHandler(browser_DocumentCompleted);
+                Console.WriteLine("请输入验证码");
+                frmCode f = new frmCode(true, clientInfo.cookieContainer, CheckCode);
+                if (f.ShowDialog() == DialogResult.OK)
                 {
-                    if (Console.ReadKey(true) == q)
-                        return;
+                    Console.WriteLine("开始登录..");
+                    if (Login(f.Code) && AuthClient())
+                    {
+                        BeginQuery();
+                    }
                 }
             }
+            else
+                Console.WriteLine("设备信息获取失败！");
+        }
+
+        private static bool AuthClient()
+        {
+            var token = JsonConvert.DeserializeObject<AppTokenResult>(HttpHelper.GetHtml("https://kyfw.12306.cn/passport/web/auth/uamtk", "appid=otn", true, clientInfo.cookieContainer));
+            var html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/uamauthclient", "tk=" + token.newapptk, true, clientInfo.cookieContainer, "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin", false);
+            if (html.Equals("302"))
+                html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/uamauthclient", "tk=" + token.newapptk, true, clientInfo.cookieContainer, "https://kyfw.12306.cn/otn/passport?redirect=/otn/login/userLogin");
+            var result = JsonConvert.DeserializeObject<AppTokenResult>(html);
+            if (result.result_code == 0)
+            {
+                Console.WriteLine("验证成功！");
+                return true;
+            }
+            else
+                Console.WriteLine("验证失败!");
+            return false;
         }
 
         private static void BeginQuery()
@@ -126,16 +187,16 @@ namespace Help12306
                     error = false;
                     break;
                 }
-                if (error && retry > 0)
-                {
-                    Console.WriteLine("重新登录，请输入验证码");
-                    frmCode fc = new frmCode(true, clientInfo.cookieContainer, CheckCode);
-                    if (fc.ShowDialog() == DialogResult.OK)
-                    {
-                        Console.WriteLine("开始登录..");
-                        Login(fc.Code);
-                    }
-                }
+                //if (error && retry > 0)
+                //{
+                //    Console.WriteLine("重新登录，请输入验证码");
+                //    frmCode fc = new frmCode(true, clientInfo.cookieContainer, CheckCode);
+                //    if (fc.ShowDialog() == DialogResult.OK)
+                //    {
+                //        Console.WriteLine("开始登录..");
+                //        Login(fc.Code);
+                //    }
+                //}
             }
             if (error)
             {
@@ -178,11 +239,21 @@ namespace Help12306
                     //c.name,c.id_type,c.id_no,c.passenger_type_
                     oldPassengerStr += string.Format("{0},1,{1},1_", p.name, p.idCard);
                 }
-                passengerTicketStr = HttpHelper.ConvertToUrlUtf8(passengerTicketStr.Substring(0, passengerTicketStr.Length - 1));
-                oldPassengerStr = HttpHelper.ConvertToUrlUtf8(oldPassengerStr);
+                passengerTicketStr = passengerTicketStr.Substring(0, passengerTicketStr.Length - 1);
+                //oldPassengerStr = HttpHelper.ConvertToUrlUtf8(oldPassengerStr);
                 return true;
             }
             catch { return false; }
+        }
+
+        private static void LogDevice()
+        {
+            string html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/HttpZF/logdevice?algID=VhjqLbjGDe&hashCode=oAFCqwD7O1ILhhzZD9OWWNAcmn0r5V9L0XD5sSNRNGU&FMQw=0&q4f3=zh-CN&VySQ=FDQDc5CfAidVSCbUifKvc2_gLZRclSXt&VPIf=1&custID=133&VEek=unknown&dzuS=0&yD16=0&EOQP=49a9fbfe2beb0490836324ceb234fef4&lEnu=3232235622&jp76=e237f9703f53d448d77c858b634154a5&hAqN=Win32&platform=WEB&ks0Q=b9a555dce60346a48de933b3e16ebd6e&TeRS=1010x1680&tOHY=24xx1050x1680&Fvje=i1l1o1s1&q5aJ=-8&wNLf=99115dfb07133750ba677d055874de87&0aew=Mozilla/5.0%20(Windows%20NT%2010.0;%20Win64;%20x64)%20AppleWebKit/537.36%20(KHTML,%20like%20Gecko)%20Chrome/62.0.3202.89%20Safari/537.36&E3gR=c93dc1eebffda55f57bc0ceef40067cb&timestamp=1516290149984", null, false, clientInfo.cookieContainer);
+            Regex rx = new Regex(@"callbackFunction\('(.*)'\)");
+            html = rx.Match(html).Groups[1].Value;
+            var result = JsonConvert.DeserializeObject<DeviceResult>(html);
+            clientInfo.cookieContainer.Add(new System.Net.Cookie("RAIL_EXPIRATION", result.exp, "/", ".12306.cn"));
+            clientInfo.cookieContainer.Add(new System.Net.Cookie("RAIL_DEVICEID", result.dfp, "/", ".12306.cn"));
         }
 
         private static bool CheckCode(bool login, string code)
@@ -382,7 +453,13 @@ namespace Help12306
 
         private static bool Submit()
         {
-            var postData = string.Format("{0}={1}&myversion=undefined&secretStr={2}&train_date={3}&back_train_date=2014-12-30&tour_flag=dc&purpose_codes=ADULT&query_from_station_name={4}&query_to_station_name={5}&undefined",
+            clientInfo.SetCookie("current_captcha_type", "Z");
+            clientInfo.SetCookie("_jc_save_fromStation", HttpHelper.CharacterToCoding(info.from) + "%2C" + fromCode);
+            clientInfo.SetCookie("_jc_save_toStation", HttpHelper.CharacterToCoding(info.to) + "%2C" + toCode);
+            clientInfo.SetCookie("_jc_save_fromDate", info.traindate);
+            clientInfo.SetCookie("_jc_save_toDate", "2018-01-18");
+            clientInfo.SetCookie("_jc_save_wfdc_flag", "dc");
+            var postData = string.Format("secretStr={2}&train_date={3}&back_train_date=2018-01-18&tour_flag=dc&purpose_codes=ADULT&query_from_station_name={4}&query_to_station_name={5}&undefined",
                     clientInfo.name, clientInfo.value, submitTrain.secretStr, info.traindate, info.from, info.to);
             string html = HttpHelper.GetHtml(Url_Submit, postData, true, clientInfo.cookieContainer);
             try
@@ -460,11 +537,12 @@ namespace Help12306
         private static bool Confirm(string code)
         {
             var postData = string.Format("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr={0}&oldPassengerStr={1}&tour_flag=dc&randCode={2}&_json_att=&REPEAT_SUBMIT_TOKEN={3}"
-               , passengerTicketStr, oldPassengerStr, code, globalRepeatSubmitToken);
+               , HttpHelper.ConvertToUrlUtf8(passengerTicketStr), HttpHelper.ConvertToUrlUtf8(oldPassengerStr), code, globalRepeatSubmitToken);
             var html = HttpHelper.GetHtml(Url_CheckOrderInfo, postData, true, clientInfo.cookieContainer);
             var result = JsonConvert.DeserializeObject<MessageResult<dynamic>>(html);
             if (result != null && result.status && result.data != null && result.data.submitStatus.Value)
             {
+                GetQueueCount();
                 if (FinalConfirm(code))
                     return true;
                 return false;
@@ -480,17 +558,18 @@ namespace Help12306
             return false;
         }
 
-        //private static void GetQueueCount()
-        //{
-        //    var postData = string.Format("train_date={0:r}&train_no={1}&stationTrainCode={2}&seatType={3}&fromStationTelecode={4}&toStationTelecode={5}&leftTicket={6}&purpose_codes=00&train_location={7}&REPEAT_SUBMIT_TOKEN={8}", DateTime.Parse(info.traindate), submitTrain.train_no, submitTrain.traincode, "O", submitTrain.from_station_telecode, submitTrain.to_station_telecode, ticketInfoForPassengerForm.leftTicketStr, ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
-        //    var html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", postData, true, clientInfo.cookieContainer);
-        //    MessageResult result = JsonConvert.DeserializeObject<MessageResult>(html);
-        //}
+        private static void GetQueueCount()
+        {
+            var postData = string.Format("train_date={0:r}&train_no={1}&stationTrainCode={2}&seatType={3}&fromStationTelecode={4}&toStationTelecode={5}&leftTicket={6}&purpose_codes=00&train_location={7}&REPEAT_SUBMIT_TOKEN={8}", DateTime.Parse(info.traindate), submitTrain.train_no, submitTrain.traincode, "O", submitTrain.from_station_telecode, submitTrain.to_station_telecode, ticketInfoForPassengerForm.leftTicketStr, ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
+            var html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", postData, true, clientInfo.cookieContainer);
+            var result = JsonConvert.DeserializeObject<MessageResult<dynamic>>(html);
+            Console.WriteLine(result.status);
+        }
 
         private static bool FinalConfirm(string code)
         {
-            var postData = string.Format("passengerTicketStr={0}&oldPassengerStr={1}&randCode={2}&purpose_codes=00&key_check_isChange={3}&leftTicketStr={4}&train_location={5}&choose_seats=&seatDetailType=000&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN={6}", passengerTicketStr, oldPassengerStr, code, ticketInfoForPassengerForm.key_check_isChange, HttpHelper.ConvertToUrlUtf8(ticketInfoForPassengerForm.leftTicketStr.Value), ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
-            var html = HttpHelper.GetHtml(Url_Confirm, postData, true, clientInfo.cookieContainer);
+            var postData = string.Format("passengerTicketStr={0}&oldPassengerStr={1}&randCode={2}&purpose_codes=00&key_check_isChange={3}&leftTicketStr={4}&train_location={5}&choose_seats=&seatDetailType=000&whatsSelect=1&roomType=00&dwAll=N&_json_att=&REPEAT_SUBMIT_TOKEN={6}", passengerTicketStr, oldPassengerStr, code, ticketInfoForPassengerForm.key_check_isChange, HttpHelper.ConvertToUrlUtf8(ticketInfoForPassengerForm.leftTicketStr.Value), ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
+            var html = HttpHelper.GetHtml(Url_Confirm, postData, true, clientInfo.cookieContainer, Url_ConfirmInit);
             var result = JsonConvert.DeserializeObject<MessageResult<dynamic>>(html);
             if (result != null && result.status && result.data != null && result.data.submitStatus.Value)
             {
