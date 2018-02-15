@@ -49,6 +49,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CityDictionary.cs" />
+    <Compile Include="ClientInfo.cs" />
     <Compile Include="frmCode.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -56,9 +58,11 @@
       <DependentUpon>frmCode.cs</DependentUpon>
     </Compile>
     <Compile Include="HttpHelper.cs" />
-    <Compile Include="Model.cs" />
+    <Compile Include="Info.cs" />
+    <Compile Include="Result.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TrainInfo.cs" />
     <EmbeddedResource Include="frmCode.resx">
       <DependentUpon>frmCode.cs</DependentUpon>
     </EmbeddedResource>

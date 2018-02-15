@@ -4,16 +4,10 @@
   <User>xxx@163.com</User>
   <!--登录密码-->
   <Password>xxxxxxx</Password>
-  <!--车次，按优先级顺序排列-->
-  <Traincodes>
-    <Traincode>G1034</Traincode>
-  </Traincodes>
-  <!--乘车日期，必须是yyyy-MM-dd格式-->
-  <Traindate>2018-01-27</Traindate>
-  <!--出发地-->
-  <From>武汉</From>
-  <!--目的地-->
-  <To>北京</To>
+  <!--乘车日期备选方案-->
+  <Trains>
+    <Train from="武汉" to="北京" date="2018-01-01" start="1230" end="2400" />
+  </Trains>
   <!--乘客信息，可以填写多个，姓名和身份证号必须匹配，手机号码不是必须的-->
   <!--座次seat:1硬座 2软座 3硬卧 4软卧 O二等座 M一等座-->
   <!--票类型ticket:1成人票 2儿童票 3学生票 4残军票-->

@@ -40,10 +40,9 @@ namespace Help12306
         private static Info info;  //外部购票信息
         private static ClientInfo clientInfo; //客户端保存信息
         private static TrainInfo submitTrain;     //提交车次
+        private static Info.Train selectTrain;    //选择的配置车次
         private static dynamic ticketInfoForPassengerForm;   //隐藏表单
         private static string globalRepeatSubmitToken;  //全局请求凭据
-        private static string fromCode;
-        private static string toCode;
         private static string passengerTicketStr;
         private static string oldPassengerStr;
 
@@ -55,31 +54,25 @@ namespace Help12306
         [STAThread]
         static void Main()
         {
-            info = Info.GetInfo(Environment.CurrentDirectory + "\\Info.xml");
+            try
+            {
+                info = Info.GetInfo(Environment.CurrentDirectory + "\\Info.xml");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("信息读取失败，" + ex.Message);
+                return;
+            }
             if (info == null)
             {
                 Console.WriteLine("信息读取失败，请检查配置文件Info.xml是否存在或格式是否有误！");
                 return;
             }
-            Console.WriteLine("出发地：" + info.from);
-            Console.WriteLine("目的地：" + info.to);
-            Console.WriteLine("备选车次：");
-            for (int i = 0; i < info.traincodes.Count; i++)
-                Console.WriteLine("{0}.{1}", i + 1, info.traincodes[i]);
-            Console.WriteLine("出发日：" + info.traindate);
-            Console.WriteLine("乘客信息：");
-            for (int i = 0; i < info.passengers.Length; ++i)
-            {
-                Console.WriteLine(string.Format("第{0}位乘客，姓名：{1}，身份证号：{2}，手机号：{3}，座次：{4}，票类：{5}", i + 1, info.passengers[i].name, new Regex(".").Replace(info.passengers[i].idCard, "*"), !string.IsNullOrEmpty(info.passengers[i].mobile) ? info.passengers[i].mobile : "无", info.passengers[i].seat, info.passengers[i].ticket));
-            }
             Console.WriteLine("输入y开始抢票其他退出程序：");
             if (Console.ReadLine() == "y")
             {
-                Console.WriteLine("");
                 if (Init())
                 {
-                    // var str = "JSESSIONID=FF13010DB370B4A23815E14878F4367D; tk=vzRCtuXR2-zckFsZk_hmcRBLvy6hxndHB8H8e3RFvkGyRLsGet2220; route=6f50b51faa11b987e576cdb301e545c4; BIGipServerotn=2061763082.50210.0000; BIGipServerpool_passport=183304714.50215.0000; RAIL_EXPIRATION=1516611526733; RAIL_DEVICEID=Sv-I6_KMiOKvun6LsaQTIZKrXtCeu8cOVx6Hq1JKC5KW9InsT2ym-M4XrQBlord7SyNPrjO8QmDGtlOqmTHNNo7Cs1k8iYwilQPGQhWukjcRSYPhZ5mnhCpeVz-vj_GRoeCCEEfbfM_2a5M42oNzXiJDyRDAEdvS; _jc_save_showIns=true; current_captcha_type=Z; _jc_save_fromStation=%u6B66%u6C49%2CWHN; _jc_save_toStation=%u8346%u5DDE%2CJBN; _jc_save_fromDate=2018-01-27; _jc_save_toDate=2018-01-18; _jc_save_wfdc_flag=dc";
-
                     browser = new WebBrowser();
                     browser.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(browser_DocumentCompleted);
 
@@ -91,31 +84,9 @@ namespace Help12306
                     form.Name = "Browser";
                     form.Load += new EventHandler(form_Load);
                     Application.Run(form);
-
-
-                    //HttpHelper.GetHtml("https://kyfw.12306.cn/otn/login/init", null, false, clientInfo.cookieContainer);
-                    //Console.WriteLine(HttpHelper.GetHtml("https://kyfw.12306.cn/passport/web/auth/uamtk", "appid=otn", true, clientInfo.cookieContainer));
-                    //LogDevice();
-                    //Console.WriteLine("请输入验证码");
-                    //frmCode f = new frmCode(true, clientInfo.cookieContainer, CheckCode);
-                    //if (f.ShowDialog() == DialogResult.OK)
-                    //{
-                    //    Console.WriteLine("开始登录..");
-                    //    if (Login(f.Code))
-                    //    {
-                    //        BeginQuery();
-                    //    }
-                    //}
                 }
                 else
                     Console.WriteLine("初始化失败");
-                //Console.WriteLine("Ctrl+C退出程序");
-                //ConsoleKeyInfo q = new ConsoleKeyInfo('c', ConsoleKey.C, false, false, true);
-                //while (true)
-                //{
-                //    if (Console.ReadKey(true) == q)
-                //        return;
-                //}
             }
         }
 
@@ -173,8 +144,8 @@ namespace Help12306
                     break;
                 else
                 {
-                    Console.WriteLine("3秒后再次查询..时间{0:HH:mm:ss}", DateTime.Now);
-                    Thread.Sleep(3000);
+                    Console.WriteLine("5秒后再次查询..时间{0:HH:mm:ss}", DateTime.Now);
+                    Thread.Sleep(5000);
                 }
             }
             bool error = true;
@@ -226,13 +197,6 @@ namespace Help12306
         {
             try
             {
-                CityDictionary cd = new CityDictionary();
-                if (!cd.value.ContainsKey(info.from))
-                    return false;
-                fromCode = cd.value[info.from];
-                if (!cd.value.ContainsKey(info.to))
-                    return false;
-                toCode = cd.value[info.to];
                 foreach (var p in info.passengers)
                 {
                     //seat_type,0,ticket_type,name,id_type,id_no,phone_no,save_status(N,Y)_
@@ -243,20 +207,9 @@ namespace Help12306
                     oldPassengerStr += string.Format("{0},1,{1},1_", p.name, p.idCard);
                 }
                 passengerTicketStr = passengerTicketStr.Substring(0, passengerTicketStr.Length - 1);
-                //oldPassengerStr = HttpHelper.ConvertToUrlUtf8(oldPassengerStr);
                 return true;
             }
             catch { return false; }
-        }
-
-        private static void LogDevice()
-        {
-            string html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/HttpZF/logdevice?algID=VhjqLbjGDe&hashCode=oAFCqwD7O1ILhhzZD9OWWNAcmn0r5V9L0XD5sSNRNGU&FMQw=0&q4f3=zh-CN&VySQ=FDQDc5CfAidVSCbUifKvc2_gLZRclSXt&VPIf=1&custID=133&VEek=unknown&dzuS=0&yD16=0&EOQP=49a9fbfe2beb0490836324ceb234fef4&lEnu=3232235622&jp76=e237f9703f53d448d77c858b634154a5&hAqN=Win32&platform=WEB&ks0Q=b9a555dce60346a48de933b3e16ebd6e&TeRS=1010x1680&tOHY=24xx1050x1680&Fvje=i1l1o1s1&q5aJ=-8&wNLf=99115dfb07133750ba677d055874de87&0aew=Mozilla/5.0%20(Windows%20NT%2010.0;%20Win64;%20x64)%20AppleWebKit/537.36%20(KHTML,%20like%20Gecko)%20Chrome/62.0.3202.89%20Safari/537.36&E3gR=c93dc1eebffda55f57bc0ceef40067cb&timestamp=1516290149984", null, false, clientInfo.cookieContainer);
-            Regex rx = new Regex(@"callbackFunction\('(.*)'\)");
-            html = rx.Match(html).Groups[1].Value;
-            var result = JsonConvert.DeserializeObject<DeviceResult>(html);
-            clientInfo.cookieContainer.Add(new System.Net.Cookie("RAIL_EXPIRATION", result.exp, "/", ".12306.cn"));
-            clientInfo.cookieContainer.Add(new System.Net.Cookie("RAIL_DEVICEID", result.dfp, "/", ".12306.cn"));
         }
 
         private static bool CheckCode(bool login, string code)
@@ -314,156 +267,99 @@ namespace Help12306
         /// <returns></returns>
         private static bool QueryByTask()
         {
-            var url = string.Format(Url_Query, info.traindate, fromCode, toCode);
-            int read = 1;
-            Func<dynamic> query = () =>
+            foreach (var train in info.trains)
             {
-                while (Thread.VolatileRead(ref read) == 1)
+                var url = string.Format(Url_Query, train.date, train.fromCode, train.toCode);
+                int read = 1;
+                Func<dynamic> query = () =>
                 {
-                    var html = HttpHelper.GetHtml(url, null, false, clientInfo.cookieContainer);
-                    MessageResult<TrainData> result = null;
-                    try
+                    while (Thread.VolatileRead(ref read) == 1)
                     {
-                        result = JsonConvert.DeserializeObject<MessageResult<TrainData>>(html);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                    if (result == null || result.data == null)
-                    {
-                        continue;
-                    }
-                    return result.data;
-                }
-                return null;
-            };
-            TaskFactory<dynamic> taskFactory = new TaskFactory<dynamic>();
-            Task<dynamic>[] tasks = new Task<dynamic>[20];
-            for (int i = 0; i < tasks.Length; i++)
-                tasks[i] = taskFactory.StartNew(query);
-            //ContinueWhenAny执行到这里只是启动一个新线程，原线程如果没有执行完仍然会执行
-            return new TaskFactory<bool>().ContinueWhenAny(tasks, task =>
-            {
-                Thread.VolatileWrite(ref read, 0);
-                #region 配置中的目标车次
-                //Dictionary<string, TrainInfo> dic = new Dictionary<string, TrainInfo>();
-                //foreach (var i in task.Result)
-                //{
-                //    TrainInfo tf = new TrainInfo(i);
-                //    if (!dic.ContainsKey(tf.traincode))
-                //        dic.Add(tf.traincode, tf);
-                //}
-                //submitTrain = null;
-                //foreach (string t in info.traincodes)
-                //{
-                //    if (dic.ContainsKey(t))
-                //    {
-                //        Console.WriteLine("已查到车次{0}，出发时间{1}，到达时间{2}，剩余二等座车票{3}，剩余一等座车票{4}", dic[t].traincode, dic[t].startTime, dic[t].arriveTime, dic[t].ze_num, dic[t].zy_num);
-                //        int ze_num = 0;
-                //        int zy_num = 0;
-                //        Int32.TryParse(dic[t].ze_num, out ze_num);
-                //        Int32.TryParse(dic[t].zy_num, out zy_num);
-                //        bool hasZE = dic[t].ze_num.Equals("有") || ze_num >= info.passengers.Length;
-                //        bool hasZY = dic[t].zy_num.Equals("有") || zy_num >= info.passengers.Length;
-                //        //Console.WriteLine("已查到车次{0}，出发时间{1}，到达时间{2}，剩余硬卧{3}", dic[t].traincode, dic[t].startTime, dic[t].arriveTime, dic[t].rw_num);
-                //        //int ze_num = 0;
-                //        //Int32.TryParse(dic[t].rw_num, out ze_num);
-                //        //bool hasZE = dic[t].rw_num.Equals("有") || ze_num >= 1;
-                //        //bool hasZY = false;
-                //        if (!string.IsNullOrEmpty(dic[t].secretStr) && (hasZE || hasZY))
-                //        {
-                //            submitTrain = dic[t];
-                //            if (!hasZE && hasZY) //二等座改为一等座
-                //            {
-                //                passengerTicketStr = "";
-                //                foreach (var p in info.passengers)
-                //                {
-                //                    passengerTicketStr += string.Format("M,0,1,{0},1,{1},{2},N_", p.name, p.idCard, p.mobile);
-                //                }
-                //                passengerTicketStr = HttpHelper.ConvertToUrlUtf8(passengerTicketStr.Substring(0, passengerTicketStr.Length - 1));
-                //                Console.WriteLine("二等座改为一等座.");
-                //            }
-                //            Console.WriteLine("选择目标车次{0}", submitTrain.traincode);
-                //            return true;
-                //        }
-                //    }
-                //}
-                #endregion
-                #region 任意晚于指定时间的车次
-                submitTrain = null;
-                foreach (var i in task.Result.result)
-                {
-                    TrainInfo tf = new TrainInfo(i);
-                    int startTime = Int32.Parse(tf.startTime.Replace(":", ""));
-                    if (startTime >= 1720 && startTime <= 1730 && (tf.traincode[0] == 'D' || tf.traincode[0] == 'G'))
-                    {
-                        Console.WriteLine("已查到车次{0}，出发时间{1}，到达时间{2}，剩余二等座车票{3}，剩余一等座车票{4}，无座{5}", tf.traincode, tf.startTime, tf.arriveTime, tf.ze_num, tf.zy_num, tf.wz_num);
-                        int ze_num = 0;
-                        int zy_num = 0;
-                        int wz_num = 0;
-                        Int32.TryParse(tf.ze_num, out ze_num);
-                        Int32.TryParse(tf.zy_num, out zy_num);
-                        Int32.TryParse(tf.wz_num, out wz_num);
-                        bool hasZE = tf.ze_num.Equals("有") || ze_num >= info.passengers.Length;
-                        bool hasZY = false;// tf.zy_num.Equals("有") || zy_num >= info.passengers.Length;
-                        if (!string.IsNullOrEmpty(tf.secretStr) && (hasZE || hasZY))
+                        var html = HttpHelper.GetHtml(url, null, false, clientInfo.cookieContainer);
+                        MessageResult<TrainData> result = null;
+                        try
                         {
-                            submitTrain = tf;
-                            if (!hasZE && hasZY) //二等座改为一等座
+                            result = JsonConvert.DeserializeObject<MessageResult<TrainData>>(html);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                        if (result == null || result.data == null)
+                        {
+                            continue;
+                        }
+                        return result.data;
+                    }
+                    return null;
+                };
+                TaskFactory<dynamic> taskFactory = new TaskFactory<dynamic>();
+                Task<dynamic>[] tasks = new Task<dynamic>[10];
+                for (int i = 0; i < tasks.Length; i++)
+                    tasks[i] = taskFactory.StartNew(query);
+                //ContinueWhenAny执行到这里只是启动一个新线程，原线程如果没有执行完仍然会执行
+                var resultTask = new TaskFactory<bool>().ContinueWhenAny(tasks, task =>
+                {
+                    Thread.VolatileWrite(ref read, 0);
+                    #region 任意晚于指定时间的车次
+                    submitTrain = null;
+                    selectTrain = null;
+                    foreach (var i in task.Result.result)
+                    {
+                        TrainInfo tf = new TrainInfo(i);
+                        int startTime = Int32.Parse(tf.startTime.Replace(":", ""));
+                        if (startTime >= train.start && startTime <= train.end && (tf.traincode[0] == 'D' || tf.traincode[0] == 'G'))
+                        {
+                            Console.WriteLine("已查到车次{0}，出发时间{1}，到达时间{2}，剩余二等座车票{3}，剩余一等座车票{4}，无座{5}，硬座{6}", tf.traincode, tf.startTime, tf.arriveTime, tf.ze_num, tf.zy_num, tf.wz_num, tf.yz_num);
+                            int ze_num = 0;
+                            int zy_num = 0;
+                            int wz_num = 0;
+                            int yz_num = 0;
+                            Int32.TryParse(tf.ze_num, out ze_num);
+                            Int32.TryParse(tf.zy_num, out zy_num);
+                            Int32.TryParse(tf.wz_num, out wz_num);
+                            Int32.TryParse(tf.yz_num, out yz_num);
+                            bool hasZE = tf.ze_num.Equals("有") || ze_num >= info.passengers.Length;
+                            bool hasZY = tf.zy_num.Equals("有") || zy_num >= info.passengers.Length;
+                            if (!string.IsNullOrEmpty(tf.secretStr) && (hasZE || hasZY))
                             {
-                                passengerTicketStr = "";
-                                foreach (var p in info.passengers)
+                                submitTrain = tf;
+                                selectTrain = train;
+                                if (!hasZE && hasZY) //二等座改为一等座
                                 {
-                                    passengerTicketStr += string.Format("M,0,1,{0},1,{1},{2},N_", p.name, p.idCard, p.mobile);
+                                    passengerTicketStr = "";
+                                    foreach (var p in info.passengers)
+                                    {
+                                        passengerTicketStr += string.Format("M,0,1,{0},1,{1},{2},N_", p.name, p.idCard, p.mobile);
+                                    }
+                                    passengerTicketStr = HttpHelper.ConvertToUrlUtf8(passengerTicketStr.Substring(0, passengerTicketStr.Length - 1));
+                                    Console.WriteLine("二等座改为一等座.");
                                 }
-                                passengerTicketStr = HttpHelper.ConvertToUrlUtf8(passengerTicketStr.Substring(0, passengerTicketStr.Length - 1));
-                                Console.WriteLine("二等座改为一等座.");
+                                Console.WriteLine("选择目标车次{0}", submitTrain.traincode);
+                                return true;
                             }
-                            Console.WriteLine("选择目标车次{0}", submitTrain.traincode);
-                            return true;
                         }
                     }
-                }
-                #endregion
-                Console.WriteLine("未能提交目标车次");
-                return false;
-            }).Result;
+                    #endregion
+                    Console.WriteLine("未能提交目标车次");
+                    return false;
+                });
+                if (resultTask.Result)
+                    return true;
+            }
+            return false;
         }
-
-        //private static bool SubmitByTask()
-        //{
-        //    TaskFactory<string> taskFactory = new TaskFactory<string>();
-        //    Task<string>[] tasks = new Task<string>[5];
-        //    for (int i = 0; i < tasks.Length; i++)
-        //        tasks[i] = taskFactory.StartNew(() =>
-        //        {
-        //            if (Submit())
-        //                return HttpHelper.GetHtml(Url_ConfirmInit + "?rd=" + DateTime.Now.Ticks, null, false, clientInfo.cookieContainer);
-        //            else
-        //            {
-        //                Thread.Sleep(3000);
-        //                return null;
-        //            }
-        //        });
-        //    return new TaskFactory<bool>().ContinueWhenAny(tasks, t =>
-        //    {
-        //        if (!string.IsNullOrEmpty(t.Result) && GetToken(t.Result))
-        //            return true;
-        //        return false;
-        //    }).Result;
-        //}
 
         private static bool Submit()
         {
-            clientInfo.SetCookie("current_captcha_type", "Z");
-            clientInfo.SetCookie("_jc_save_fromStation", HttpHelper.CharacterToCoding(info.from) + "%2C" + fromCode);
-            clientInfo.SetCookie("_jc_save_toStation", HttpHelper.CharacterToCoding(info.to) + "%2C" + toCode);
-            clientInfo.SetCookie("_jc_save_fromDate", info.traindate);
-            clientInfo.SetCookie("_jc_save_toDate", "2018-01-18");
-            clientInfo.SetCookie("_jc_save_wfdc_flag", "dc");
+            //clientInfo.SetCookie("current_captcha_type", "Z");
+            //clientInfo.SetCookie("_jc_save_fromStation", HttpHelper.CharacterToCoding(info.from) + "%2C" + fromCode);
+            //clientInfo.SetCookie("_jc_save_toStation", HttpHelper.CharacterToCoding(info.to) + "%2C" + toCode);
+            //clientInfo.SetCookie("_jc_save_fromDate", info.traindate);
+            //clientInfo.SetCookie("_jc_save_toDate", "2018-01-18");
+            //clientInfo.SetCookie("_jc_save_wfdc_flag", "dc");
             var postData = string.Format("secretStr={2}&train_date={3}&back_train_date=2018-01-18&tour_flag=dc&purpose_codes=ADULT&query_from_station_name={4}&query_to_station_name={5}&undefined",
-                    clientInfo.name, clientInfo.value, submitTrain.secretStr, info.traindate, info.from, info.to);
+                    clientInfo.name, clientInfo.value, submitTrain.secretStr, selectTrain.date, selectTrain.from, selectTrain.to);
             string html = HttpHelper.GetHtml(Url_Submit, postData, true, clientInfo.cookieContainer);
             try
             {
@@ -522,21 +418,6 @@ namespace Help12306
             return true;
         }
 
-        private static bool ConfirmByTask(string code)
-        {
-            TaskFactory<bool> taskFactory = new TaskFactory<bool>();
-            Task<bool>[] tasks = new Task<bool>[20];
-            for (int i = 0; i < tasks.Length; i++)
-                tasks[i] = taskFactory.StartNew(() => Confirm(code));
-            return new TaskFactory<bool>().ContinueWhenAll(tasks, completeTasks =>
-            {
-                if (completeTasks.Count(p => p.Result) > 0)
-                    return true;
-                Console.WriteLine("Confirm:抢票结束，失败");
-                return false;
-            }).Result;
-        }
-
         private static bool Confirm(string code)
         {
             var postData = string.Format("cancel_flag=2&bed_level_order_num=000000000000000000000000000000&passengerTicketStr={0}&oldPassengerStr={1}&tour_flag=dc&randCode={2}&_json_att=&REPEAT_SUBMIT_TOKEN={3}"
@@ -563,10 +444,10 @@ namespace Help12306
 
         private static void GetQueueCount()
         {
-            var postData = string.Format("train_date={0:r}&train_no={1}&stationTrainCode={2}&seatType={3}&fromStationTelecode={4}&toStationTelecode={5}&leftTicket={6}&purpose_codes=00&train_location={7}&REPEAT_SUBMIT_TOKEN={8}", DateTime.Parse(info.traindate), submitTrain.train_no, submitTrain.traincode, "O", submitTrain.from_station_telecode, submitTrain.to_station_telecode, ticketInfoForPassengerForm.leftTicketStr, ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
+            var postData = string.Format("train_date={0:r}&train_no={1}&stationTrainCode={2}&seatType={3}&fromStationTelecode={4}&toStationTelecode={5}&leftTicket={6}&purpose_codes=00&train_location={7}&REPEAT_SUBMIT_TOKEN={8}", DateTime.Parse(selectTrain.date), submitTrain.train_no, submitTrain.traincode, "O", submitTrain.from_station_telecode, submitTrain.to_station_telecode, ticketInfoForPassengerForm.leftTicketStr, ticketInfoForPassengerForm.train_location, globalRepeatSubmitToken);
             var html = HttpHelper.GetHtml("https://kyfw.12306.cn/otn/confirmPassenger/getQueueCount", postData, true, clientInfo.cookieContainer);
             var result = JsonConvert.DeserializeObject<MessageResult<dynamic>>(html);
-            Console.WriteLine(result.status);
+            Console.WriteLine("GetQueueCount返回：" + result.status);
         }
 
         private static bool FinalConfirm(string code)
