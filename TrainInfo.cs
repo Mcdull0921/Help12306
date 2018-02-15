@@ -36,15 +36,15 @@ namespace Help12306
             to_station_telecode = data[7];
             startTime = data[8];
             arriveTime = data[9];
-            swz_num = data[32];
-            zy_num = data[31];
-            ze_num = data[30];
-            yz_num = data[20];
-            yw_num = data[28];
-            wz_num = data[26];
-            rz_num = data[24];
-            rw_num = data[23];
-            tz_num = data[25];
+            swz_num = string.IsNullOrEmpty(data[32]) ? "无" : data[32];
+            zy_num = string.IsNullOrEmpty(data[31]) ? "无" : data[31];
+            ze_num = string.IsNullOrEmpty(data[30]) ? "无" : data[30];
+            yz_num = string.IsNullOrEmpty(data[20]) ? "无" : data[20];
+            yw_num = string.IsNullOrEmpty(data[28]) ? "无" : data[28];
+            wz_num = string.IsNullOrEmpty(data[26]) ? "无" : data[26];
+            rz_num = string.IsNullOrEmpty(data[24]) ? "无" : data[24];
+            rw_num = string.IsNullOrEmpty(data[23]) ? "无" : data[23];
+            tz_num = string.IsNullOrEmpty(data[25]) ? "无" : data[25];
         }
 
         public string from_station_telecode { get; private set; }
