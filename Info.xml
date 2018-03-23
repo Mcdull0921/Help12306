@@ -6,7 +6,8 @@
   <Password>xxxxxxx</Password>
   <!--乘车日期备选方案-->
   <Trains>
-    <Train from="武汉" to="北京" date="2018-01-01" start="1230" end="2400" />
+    <!--stations为起始车站，可选，如果不过滤去除这个属性 -->
+    <Train from="武汉" to="北京" date="2018-01-01" start="1230" end="2400" stations="武汉,武昌" />
   </Trains>
   <!--乘客信息，可以填写多个，姓名和身份证号必须匹配，手机号码不是必须的-->
   <!--座次seat:1硬座 2软座 3硬卧 4软卧 O二等座 M一等座-->
