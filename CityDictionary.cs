@@ -13,6 +13,7 @@ namespace Help12306
             value = new Dictionary<string, string>();
             value.Add("荆州", "JBN");
             value.Add("汉口", "HKN");
+            value.Add("武昌", "WCN");
             value.Add("荆门", "JMN");
             value.Add("武汉", "WHN");
             value.Add("北京", "BJP");

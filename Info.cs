@@ -26,6 +26,10 @@ namespace Help12306
             public int end { get; set; }
             public string fromCode { get; set; }
             public string toCode { get; set; }
+            /// <summary>
+            /// 车站
+            /// </summary>
+            public Dictionary<string, string> stations { get; set; }
         }
         class Private_Info : Info
         {
@@ -71,12 +75,24 @@ namespace Help12306
                     from = p.Attributes["from"].Value,
                     to = p.Attributes["to"].Value,
                     start = int.Parse(p.Attributes["start"].Value),
-                    end = int.Parse(p.Attributes["end"].Value)
+                    end = int.Parse(p.Attributes["end"].Value),
+                    stations = new Dictionary<string, string>()
                 };
                 t.fromCode = cd[t.from];
                 t.toCode = cd[t.to];
-                if (string.IsNullOrEmpty(t.fromCode) || string.IsNullOrEmpty(t.toCode))
-                    throw new Exception("未能找到城市代码");
+                if (string.IsNullOrEmpty(t.fromCode))
+                    throw new Exception("未能找到“" + t.from + "”的城市代码");
+                if (string.IsNullOrEmpty(t.toCode))
+                    throw new Exception("未能找到“" + t.to + "”的城市代码");
+                if (p.Attributes["stations"] != null)
+                {
+                    foreach (var s in p.Attributes["stations"].Value.Split(",".ToArray(), StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (string.IsNullOrEmpty(cd[s]))
+                            throw new Exception("未能找到“" + s + "”的城市代码");
+                        t.stations.Add(cd[s], s);
+                    }
+                }
                 trains.Add(t);
             }
             info.trains = trains.ToArray();

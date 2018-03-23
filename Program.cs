@@ -22,7 +22,7 @@ namespace Help12306
         private const string Url_Login = "https://kyfw.12306.cn/passport/web/login";
         //查询车次
         // private const string Url_Query = "https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date={0}&leftTicketDTO.from_station={1}&leftTicketDTO.to_station={2}&purpose_codes=ADULT";
-        private const string Url_Query = "https://kyfw.12306.cn/otn/leftTicket/queryZ?leftTicketDTO.train_date={0}&leftTicketDTO.from_station={1}&leftTicketDTO.to_station={2}&purpose_codes=ADULT";
+        private const string Url_Query = "https://kyfw.12306.cn/otn/leftTicket/queryO?leftTicketDTO.train_date={0}&leftTicketDTO.from_station={1}&leftTicketDTO.to_station={2}&purpose_codes=ADULT";
         //订单提交地址
         private const string Url_Submit = "https://kyfw.12306.cn/otn/leftTicket/submitOrderRequest";
         //确认订单初始化地址
@@ -307,8 +307,9 @@ namespace Help12306
                     foreach (var i in task.Result.result)
                     {
                         TrainInfo tf = new TrainInfo(i);
+                        bool isTarget = train.stations.Keys.Count == 0 || train.stations.ContainsKey(tf.from_station_telecode);
                         int startTime = Int32.Parse(tf.startTime.Replace(":", ""));
-                        if (startTime >= train.start && startTime <= train.end && (tf.traincode[0] == 'D' || tf.traincode[0] == 'G'))
+                        if (startTime >= train.start && startTime <= train.end && isTarget && (tf.traincode[0] == 'D' || tf.traincode[0] == 'G'))
                         {
                             Console.WriteLine("已查到车次{0}，出发时间{1}，到达时间{2}，剩余二等座车票{3}，剩余一等座车票{4}，无座{5}，硬座{6}", tf.traincode, tf.startTime, tf.arriveTime, tf.ze_num, tf.zy_num, tf.wz_num, tf.yz_num);
                             int ze_num = 0;
